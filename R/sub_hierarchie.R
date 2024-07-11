@@ -1,9 +1,3 @@
-
-Sure! Below is the roxygen2 documentation skeleton for the make_sub_hier() function. You can use this to document the function within your R script or R package.
-
-Roxygen2 Skeleton for make_sub_hier
-r
-Copy code
 #' Create Sub-Hierarchy
 #'
 #' This function creates a hierarchical structure using the `sdcHierarchies` package. It dynamically adds child nodes for specified parent nodes based on the provided data.
@@ -16,8 +10,6 @@ Copy code
 #'
 #' @return A hierarchical structure with the specified root and child nodes.
 #' @export
-#'
-#' @examples
 
 # Function to create sub-hierarchy
 make_sub_hier <- function(data, 

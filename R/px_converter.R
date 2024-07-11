@@ -6,169 +6,168 @@
 #' @param var_totals character for totals in all disaggregates.
 #' @param var_display_names variable names to replace the disaggregation variables.
 #' @param weight_var weight variable (must be numeric).
-#' @param title title of the statistical table being generated.
-#' @param matrix summary of the table or source.
-#' @param u_of_m unit of measure.
-#' @param subject_code subject code.
-#' @param subject_area subject area.
-#' @param content similar to title.
-#' @param showdecimals numeric value showing the decimal place.
-#' @param decimals numeric value showing the decimal place.
-#' @param language en.
-#' @param source source of data eg. GDHS and GLSS.
-#' @param note notes.
 #' @param save_location the directory to save the returned output.
 #' @param min_cells minimum frequency for suppression (default is 5)
 #' @param summary_type type of summary to make. Only accepts:
 #' \itemize{
 #'   \item **freq:** frequencies or counts
-#'   \item **rate:** computes rates for dimensions.
+#'   \item **percent:** computes percenatages for dimensions.
+#'   \item **numSum:** computes sum of numeric variable by dimensions.
+#'   \item **single_rate:** computes rates for dimensions. eg. unemployment rate without the inverse (employment).
 #' }
+#' @param rate_element focus element to tretain under single_rate summary_type 
 #' @param numericVar a numeric or character vector defining the column indices or variable names of additional numeric variables with respect to data.
-#'
+#' @param add_hier update the list of hierarchie created by this function with a list of different hierarchies 
+#' @param ... additional variables for as.px.data.frame
+#' 
 #' @return px file
 #' @export
-process_data <- function(data, var_names, var_totals,var_display_names, weight_var, title, matrix,
-                         u_of_m ="percentage of population",
-                         subject_code, subject_area,
-                         content,
-                         showdecimals,
-                         decimals,
-                         language,
-                         source,
-                         note,
-                         save_location,
-                         min_cells = 5,
-                         summary_type = "freq", # freq, numSum, prop, single_rate
-                         rate_element = NULL,
-                         numericVar = NULL
+process_data <- function(data, var_names, var_totals,var_display_names, weight_var, save_location, min_cells = 5, rate_element = NULL, numericVar = NULL,
+  add_hier = NULL, summary_type = "freq", # freq, numSum, percent, single_rate
+  ...
 ) {
-
-
+  
+  
   my_tibs <- tibble(var_names,var_display_names, var_totals)
-
+  
   print("using these variables")
   print(my_tibs)
-
+  
   # Extracting variables and creating hierarchies
   data_selected <- data %>% select(!!!syms(var_names), all_of({{ weight_var }}))
   data_selected <- data_selected %>% sjlabelled::as_label()
-
+  
   hier_list <- lapply(1:length(var_names), function(i) {
     var <- var_names[i]
     total <- var_totals[i]
     hier_create(root = total, nodes = levels(data_selected[[var]]))
   })
   names(hier_list) <- var_names
-
+  
+  # adds a list of different hierarchies to the hier_list created in this function 
+  update_hier_list <- function(hier_name) {
+    hier_list[[sym(hier_name)]] <<- add_hier[[sym(hier_name)]]
+    
+    main_var_unique <- add_hier[[hier_name]] |> filter(level == 2) |> pull(leaf) |> as.character()
+    data_select <- data %>% select_if(negate(is.numeric))
+    unique_list <- map(data_select, unique)
+    rm(data_select)     
+    
+    # we need to remove hierarchies for variables that are not needed
+    # Identify which elements in unique_list are exactly equal to nm
+    matches <- map_lgl(unique_list, ~ identical(sort(.x), sort(main_var_unique)))
+    matching_names <- names(unique_list)[matches]
+    
+    # we remove hierarchies for variables that are not needed if 
+    if (length(matching_names) > 0) {
+      hier_list <<- hier_list[!names(hier_list) %in% matching_names]
+    }
+    
+    # remove matching_names from params 
+    indx <- which(var_names %in% matching_names)
+    var_display_names <<- var_display_names[-indx]
+    var_names <<- var_names[-indx]
+    var_totals <<- var_totals[-indx]
+    
+    my_tibs <- tibble(var_names,var_display_names, var_totals)
+    
+    print("using these updated variables")
+    print(my_tibs)
+    
+    return(hier_list)
+  }
+  
+  # apply the update_hier_list function to the hier_list
+  if(!is.null(add_hier)){
+    walk(names(add_hier), update_hier_list)
+  }
+  
+  
   prob <- makeProblem(data_selected, dimList = hier_list, sampWeightInd = weight_var, numVarInd = numericVar)
-
+  
   # Calculating percentages
   percentages <- sdcProb2df(prob, addNumVars  = ifelse(is.null(numericVar), FALSE, TRUE))
-
+  
   for (i in 1:length(var_names)) {
     var_name <- var_names[i]
     var_display_name <- var_display_names[i]
     label_var <- paste0(var_name, "_o")
     percentages <- percentages %>%
-      mutate(!!var_display_name := factor(as.numeric(.data[[var_name]]), labels = unique(.data[[label_var]])))
+    mutate(!!var_display_name := factor(as.numeric(.data[[var_name]]), labels = unique(.data[[label_var]])))
   }
-
+  
   group_vars <- var_display_names[-1]  # Excludes the first variable from grouping
-
-  if (summary_type == "rate") {
+  
+  if (summary_type == "single_rate") {
     percentages <- percentages %>%
-      select(!!!syms(var_display_names), value = freq) %>%
-      group_by(across(all_of(group_vars))) %>%
-      mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
-      mutate(value = round(value * 100, 1)) %>%
-      ungroup() %>%
-      filter(!!rlang::sym(var_display_names[1]) %in% c(rate_element)) %>%
-      select(!!!syms(group_vars), value)
+    select(!!!syms(var_display_names), value = freq) %>%
+    group_by(across(all_of(group_vars))) %>%
+    mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
+    mutate(value = round(value * 100, 1)) %>%
+    ungroup() %>%
+    filter(!!rlang::sym(var_display_names[1]) %in% c(rate_element)) %>%
+    select(!!!syms(group_vars), value)
   }else if(summary_type == "percent"){
     percentages <- percentages %>%
-      select(!!!syms(var_display_names), value = freq) %>%
-      group_by(across(all_of(group_vars))) %>%
-      mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
-      mutate(value = round(value * 100, 1)) %>%
-      ungroup()
+    select(!!!syms(var_display_names), value = freq) %>%
+    group_by(across(all_of(group_vars))) %>%
+    mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
+    mutate(value = round(value * 100, 1)) %>%
+    ungroup()
   }else if(summary_type == "numSum"){
     percentages <- percentages %>%
-      select(!!!syms(var_display_names), value = !!numericVar) %>%
-      group_by(across(all_of(group_vars))) %>%
-      summarize(value = sum(value)) %>%
-      mutate(value = round(value, 1)) %>%
-      ungroup()
+    select(!!!syms(var_display_names), value = !!numericVar) %>%
+    group_by(across(all_of(group_vars))) %>%
+    summarize(value = sum(value)) %>%
+    mutate(value = round(value, 1)) %>%
+    ungroup()
   }else{
     percentages <- percentages %>%
-      select(!!!syms(var_display_names), value = freq) %>%
-      mutate(value = round(value, 0)) %>%
-      ungroup()
+    select(!!!syms(var_display_names), value = freq) %>%
+    mutate(value = round(value, 0)) %>%
+    ungroup()
   }
-
-
-
-
-
+  
   #### Remove cells that are based on too small values
-
   prob_dummy <- makeProblem(data_selected, dimList = hier_list, numVarInd = numericVar)
-
+  
   prob_dummy <- primarySuppression(prob_dummy, type = "freq", maxN = min_cells)
-
+  
   percentages_dummy <- sdcProb2df(prob, addNumVars  = ifelse(is.null(numericVar), FALSE, TRUE))
-
+  
   for (i in 1:length(var_names)) {
     var_name <- var_names[i]
     var_display_name <- var_display_names[i]
     label_var <- paste0(var_name, "_o")
     percentages_dummy <- percentages_dummy %>%
-      mutate(!!var_display_name := factor(as.numeric(.data[[var_name]]), labels = unique(.data[[label_var]])))
+    mutate(!!var_display_name := factor(as.numeric(.data[[var_name]]), labels = unique(.data[[label_var]])))
   }
-
+  
   percentages_dummy <- percentages_dummy %>%
-    filter(sdcStatus  == "s") %>%
-    select(!!!syms(var_display_names), n = freq)
-
+  filter(sdcStatus  == "s") %>%
+  select(!!!syms(var_display_names), n = freq)
+  
   if(summary_type == "rate"){
     percentages <- percentages
   } else{
     percentages <- percentages %>% left_join(percentages_dummy,  by = var_display_names) %>%
-      mutate(value = ifelse(is.na(n), NA, value)) %>%
-      select(-n)
+    mutate(value = ifelse(is.na(n), NA, value)) %>%
+    select(-n)
   }
-
+  
   # Creating px table
   #### creating px table
-  px_table <- as.px.data.frame(percentages,
-                               list.keys = list(TITLE = title,
-                                                MATRIX = matrix,
-                                                # units used
-                                                UNITS =u_of_m,
-                                                ## subject code. Note the name is in apostrophes as R doesn't accept '-' in variable names.
-                                                ## The apostrophes however define that it's a variable name.
-                                                'SUBJECT-CODE' = subject_code,
-                                                #Subject area
-                                                'SUBJECT-AREA' = subject_area,
-                                                # contents
-                                                CONTENTS = content,
-                                                SHOWDECIMALS = showdecimals,
-                                                DECIMALS = decimals,
-                                                LANGUAGE=language,
-                                                #`HIERARCHIES("x")` = x_px,
-                                                SOURCE =source,
-                                                NOTEX = note
-                               ))
-
-
+  px_table <- as.px.data.frame(percentages, list.keys = list(...))
+  
+  
   elimination_vars <- var_totals[-1]  # Excludes the first variable total from ELIMINATION
   px_table$ELIMINATION <- setNames(elimination_vars, var_display_names[-1])
   px_table$CODES <- setNames(lapply(var_names, function(var) levels(percentages[[var_display_names[which(var_names == var)]]])), var_display_names)
-
+  
   write.px(px_table, save_location)
-
+  
   print("done processing")
-  print("Saved data by assigning to an object.")
+  print("Saved data to assigning to an object.")
   return(percentages)
-
+  
 }

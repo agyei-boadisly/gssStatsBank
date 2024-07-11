@@ -10,22 +10,13 @@ process_data(
   var_totals,
   var_display_names,
   weight_var,
-  title,
-  matrix,
-  u_of_m = "percentage of population",
-  subject_code,
-  subject_area,
-  content,
-  showdecimals,
-  decimals,
-  language,
-  source,
-  note,
   save_location,
   min_cells = 5,
-  summary_type = "freq",
   rate_element = NULL,
-  numericVar = NULL
+  numericVar = NULL,
+  add_hier = NULL,
+  summary_type = "freq",
+  ...
 )
 }
 \arguments{
@@ -39,39 +30,25 @@ process_data(
 
 \item{weight_var}{weight variable (must be numeric).}
 
-\item{title}{title of the statistical table being generated.}
-
-\item{matrix}{summary of the table or source.}
-
-\item{u_of_m}{unit of measure.}
-
-\item{subject_code}{subject code.}
-
-\item{subject_area}{subject area.}
-
-\item{content}{similar to title.}
-
-\item{showdecimals}{numeric value showing the decimal place.}
-
-\item{decimals}{numeric value showing the decimal place.}
-
-\item{language}{en.}
-
-\item{source}{source of data eg. GDHS and GLSS.}
-
-\item{note}{notes.}
-
 \item{save_location}{the directory to save the returned output.}
 
 \item{min_cells}{minimum frequency for suppression (default is 5)}
 
+\item{rate_element}{focus element to tretain under single_rate summary_type}
+
+\item{numericVar}{a numeric or character vector defining the column indices or variable names of additional numeric variables with respect to data.}
+
+\item{add_hier}{update the list of hierarchie created by this function with a list of different hierarchies}
+
 \item{summary_type}{type of summary to make. Only accepts:
 \itemize{
   \item **freq:** frequencies or counts
-  \item **rate:** computes rates for dimensions.
+  \item **percent:** computes percenatages for dimensions.
+  \item **numSum:** computes sum of numeric variable by dimensions.
+  \item **single_rate:** computes rates for dimensions. eg. unemployment rate without the inverse (employment).
 }}
 
-\item{numericVar}{a numeric or character vector defining the column indices or variable names of additional numeric variables with respect to data.}
+\item{...}{additional variables for as.px.data.frame}
 }
 \value{
 px file
