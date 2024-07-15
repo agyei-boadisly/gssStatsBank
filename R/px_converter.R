@@ -12,6 +12,7 @@
 #' \itemize{
 #'   \item **freq:** frequencies or counts
 #'   \item **percent:** computes percenatages for dimensions.
+#'   \item **numFreq:** computes frequency of numeric variable by dimensions. Eg. Number of livestock raised by households/individuals.
 #'   \item **numSum:** computes sum of numeric variable by dimensions.
 #'   \item **single_rate:** computes rates for dimensions. eg. unemployment rate without the inverse (employment).
 #' }
@@ -34,7 +35,12 @@ process_data <- function(data, var_names, var_totals,var_display_names, weight_v
   print(my_tibs)
   
   # Extracting variables and creating hierarchies
-  data_selected <- data %>% select(!!!syms(var_names), all_of({{ weight_var }}))
+  if (!is.null(numericVar)) {
+    data_selected <- data %>% select(!!!syms(var_names), {{ weight_var }}, {{ numericVar }})
+  } else {
+    data_selected <- data %>% select(!!!syms(var_names), {{ weight_var }})
+  }
+  # data_selected <- data %>% select(!!!syms(var_names), all_of({{ weight_var }}))
   data_selected <- data_selected %>% sjlabelled::as_label()
   
   hier_list <- lapply(1:length(var_names), function(i) {
@@ -114,12 +120,18 @@ process_data <- function(data, var_names, var_totals,var_display_names, weight_v
     mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
     mutate(value = round(value * 100, 1)) %>%
     ungroup()
-  }else if(summary_type == "numSum"){
+  }else if(summary_type == "numFreq"){
     percentages <- percentages %>%
     select(!!!syms(var_display_names), value = !!numericVar) %>%
     group_by(across(all_of(group_vars))) %>%
+    mutate(value = round(value, 0)) %>%
+    ungroup()
+  }else if(summary_type == "numSum"){
+    percentages <- percentages %>%
+    select(!!!syms(var_display_names), value = !!numericVar) %>%
+    group_by(across(all_of(var_display_names))) %>%
     summarize(value = sum(value)) %>%
-    mutate(value = round(value, 1)) %>%
+    mutate(value = round(value, 0)) %>%
     ungroup()
   }else{
     percentages <- percentages %>%
@@ -147,9 +159,21 @@ process_data <- function(data, var_names, var_totals,var_display_names, weight_v
   filter(sdcStatus  == "s") %>%
   select(!!!syms(var_display_names), n = freq)
   
-  if(summary_type == "rate"){
-    percentages <- percentages
-  } else{
+  var_final <- var_names
+  var_display_names_final <- var_display_names
+  
+  if(summary_type == "single_rate"){
+    var_final <- var_final[-1]
+    var_display_names_final <- var_display_names_final[-1]
+
+    percentages_dummy <- percentages_dummy |> 
+      filter(!!rlang::sym(var_display_names[1]) %in% c(rate_element)) %>%
+      select(!!!syms(group_vars), n)
+    percentages <- percentages %>% left_join(percentages_dummy,  by = group_vars) %>%
+      mutate(value = ifelse(is.na(n), NA, value)) %>%
+      select(-n)
+      
+  }else{
     percentages <- percentages %>% left_join(percentages_dummy,  by = var_display_names) %>%
     mutate(value = ifelse(is.na(n), NA, value)) %>%
     select(-n)
@@ -162,7 +186,7 @@ process_data <- function(data, var_names, var_totals,var_display_names, weight_v
   
   elimination_vars <- var_totals[-1]  # Excludes the first variable total from ELIMINATION
   px_table$ELIMINATION <- setNames(elimination_vars, var_display_names[-1])
-  px_table$CODES <- setNames(lapply(var_names, function(var) levels(percentages[[var_display_names[which(var_names == var)]]])), var_display_names)
+  px_table$CODES <- setNames(lapply(var_final, function(var) levels(percentages[[var_display_names_final[which(var_final == var)]]])), var_display_names_final)
   
   write.px(px_table, save_location)
   

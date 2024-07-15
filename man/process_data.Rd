@@ -44,6 +44,7 @@ process_data(
 \itemize{
   \item **freq:** frequencies or counts
   \item **percent:** computes percenatages for dimensions.
+  \item **numFreq:** computes frequency of numeric variable by dimensions. Eg. Number of livestock raised by households/individuals.
   \item **numSum:** computes sum of numeric variable by dimensions.
   \item **single_rate:** computes rates for dimensions. eg. unemployment rate without the inverse (employment).
 }}
