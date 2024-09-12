@@ -1,6 +1,6 @@
 #' Creating GSS Age Hierarchy
 #'
-#' @parms cutoff_age the maximum age to be used in the age groups (e.g. 65, 80, 100)
+#' @param cutoff_age the maximum age to be used in the age groups (e.g. 65, 80, 100)
 #' @return Output is a sdc hierarchy of the age groups used by GSS.
 #' @export
 #'

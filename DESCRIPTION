@@ -1,12 +1,11 @@
 Package: ghstats
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Create Elegant StatsBank PX Tables
 Version: 0.1.0
-Author: Who wrote it
+Author: GSS Data Science Team
 Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Description: Create PX Tables with hierarchies to publish on the StatsBank.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
