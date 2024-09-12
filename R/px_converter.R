@@ -42,7 +42,7 @@ px_converter <- function(data, title, matrix, units,
 
   # Set elimination except for first variable (and value)
   px_table$ELIMINATION <- sapply(data, function(x) if(is.factor(x)) levels(x)[1] else NA)[2:(ncol(data)-1)]
-  px_table$CODES <-  sapply(data[, -"value"], levels)
+  px_table$CODES <-  sapply(data, levels)[-ncol(data)]
 
   ### Add hierarchies
   if(length(hier_variables) > 0){
