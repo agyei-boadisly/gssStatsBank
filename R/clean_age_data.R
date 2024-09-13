@@ -368,8 +368,12 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
 
     # Add single ages if not age_group
     if(!age_group){
+      # Select maximum level of age hierarchy
+      max_level = max(clean_age_hier$level)
+
+      # Loop over the max level groups
       groups <- clean_age_hier |>
-        filter(level == 3) |>
+        filter(level == max_level) |>
         pull(leaf)
 
       for(g in groups){

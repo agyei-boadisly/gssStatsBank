@@ -21,6 +21,7 @@
 #'
 #' @return data
 #' @export
+<<<<<<< Updated upstream
 process_data <- function(data, var_names, var_totals, var_display_names, weight_var,
                          add_hier = NULL, summary_type = "freq", rate_element = NULL,
                          numericVar = NULL, min_cells = 5
@@ -34,9 +35,15 @@ process_data <- function(data, var_names, var_totals, var_display_names, weight_
 
   # Extracting variables and creating hierarchies
   if (!is.null(numericVar)) {
+  if (!is.null(numericVar) & !is.null(weight_var)) {
     data_selected <- data %>% select(!!!syms(var_names), {{ weight_var }}, {{ numericVar }})
   } else {
+  } else if(!is.null(numericVar) & is.null(weight_var)){
+    data_selected <- data %>% select(!!!syms(var_names), {{ numericVar }})
+  }else if(is.null(numericVar) & !is.null(weight_var)){
     data_selected <- data %>% select(!!!syms(var_names), {{ weight_var }})
+  }else {
+    data_selected <- data %>% select(!!!syms(var_names))
   }
 
   data_selected <- data_selected %>% sjlabelled::as_label()
