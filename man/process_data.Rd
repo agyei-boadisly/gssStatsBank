@@ -12,6 +12,7 @@ process_data(
   weight_var,
   save_location,
   min_cells = 5,
+  suppress = FALSE,
   rate_element = NULL,
   numericVar = NULL,
   add_hier = NULL,
@@ -33,6 +34,8 @@ process_data(
 \item{save_location}{the directory to save the returned output.}
 
 \item{min_cells}{minimum frequency for suppression (default is 5)}
+
+\item{suppress}{TRUE / FALSE whether to suppress small numbers (temporary fix)}
 
 \item{rate_element}{focus element to retain under single_rate summary_type}
 
