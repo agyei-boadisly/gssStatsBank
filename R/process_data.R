@@ -34,10 +34,8 @@ process_data <- function(data, var_names, var_totals, var_display_names, weight_
   print(my_tibs)
 
   # Extracting variables and creating hierarchies
-  if (!is.null(numericVar)) {
   if (!is.null(numericVar) & !is.null(weight_var)) {
     data_selected <- data %>% select(!!!syms(var_names), {{ weight_var }}, {{ numericVar }})
-  } else {
   } else if(!is.null(numericVar) & is.null(weight_var)){
     data_selected <- data %>% select(!!!syms(var_names), {{ numericVar }})
   }else if(is.null(numericVar) & !is.null(weight_var)){
