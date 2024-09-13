@@ -12,7 +12,7 @@ process_data(
   weight_var,
   save_location,
   min_cells = 5,
-  suppress = TRUE,
+  suppress = FALSE,
   rate_element = NULL,
   numericVar = NULL,
   add_hier = NULL,

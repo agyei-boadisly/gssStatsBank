@@ -25,7 +25,7 @@
 #' @return data
 #' @export
 process_data <- function(data, var_names, var_totals,var_display_names, weight_var,
-                         save_location, min_cells = 5, suppress = TRUE,
+                         save_location, min_cells = 5, suppress = FALSE,
                          rate_element = NULL, numericVar = NULL,
                          add_hier = NULL, summary_type = "freq", # freq, numSum, percent, single_rate
   ...
@@ -157,7 +157,7 @@ process_data <- function(data, var_names, var_totals,var_display_names, weight_v
   }
 
   # Suppress too small values
-  if(suppress == TRUE){
+  if(suppress){
     #### Remove cells that are based on too small values
     prob_dummy <- makeProblem(data_selected, dimList = hier_list,
                               numVarInd = numericVar)
