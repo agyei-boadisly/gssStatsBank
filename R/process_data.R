@@ -38,9 +38,10 @@ process_data <- function(data, var_names, var_totals, var_display_names, weight_
   } else {
     data_selected <- data %>% select(!!!syms(var_names), {{ weight_var }})
   }
-  # data_selected <- data %>% select(!!!syms(var_names), all_of({{ weight_var }}))
+
   data_selected <- data_selected %>% sjlabelled::as_label()
 
+  # Initialize hierarchies
   hier_list <- lapply(1:length(var_names), function(i) {
     var <- var_names[i]
     total <- var_totals[i]
@@ -87,101 +88,118 @@ process_data <- function(data, var_names, var_totals, var_display_names, weight_
     walk(names(add_hier), update_hier_list)
   }
 
-
+  # Make problem
   prob <- makeProblem(data_selected, dimList = hier_list,
                       sampWeightInd = weight_var, numVarInd = numericVar)
 
   # Calculating percentages
-  percentages <- sdcProb2df(prob, addNumVars  = ifelse(is.null(numericVar), FALSE, TRUE))
+  percentages_raw <- sdcProb2df(prob, addNumVars  = ifelse(is.null(numericVar), FALSE, TRUE))
 
-  for (i in 1:length(var_names)) {
+  # Select main variables and change names
+  percentages <- percentages_raw |>
+    select(freq, ends_with("_o"))
+
+  # Change column names (order never changes so can directly use freq and display names)
+  colnames(percentages) <- c("freq", var_display_names)
+
+  # Loop through `var_names` and convert to factors in-place
+  for (i in seq_along(var_names)) {
     var_name <- var_names[i]
     var_display_name <- var_display_names[i]
     label_var <- paste0(var_name, "_o")
-    percentages <- percentages %>%
-    mutate(!!var_display_name := factor(as.numeric(.data[[var_name]]), labels = unique(.data[[label_var]])))
+
+    # Directly convert the column to a factor with levels from the original data
+    percentages[[var_display_name]] <- factor(percentages[[var_display_name]],
+                                              levels = unique(percentages_raw[[label_var]]))
   }
 
   group_vars <- var_display_names[-1]  # Excludes the first variable from grouping
 
   if (summary_type == "single_rate") {
     percentages <- percentages %>%
-    select(!!!syms(var_display_names), value = freq) %>%
-    group_by(across(all_of(group_vars))) %>%
-    mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
-    mutate(value = round(value * 100, 1)) %>%
-    ungroup() %>%
-    filter(!!rlang::sym(var_display_names[1]) %in% c(rate_element)) %>%
-    select(!!!syms(group_vars), value)
+      select(!!!syms(var_display_names), value = freq) %>%
+      group_by(across(all_of(group_vars))) %>%
+      mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
+      mutate(value = round(value * 100, 1)) %>%
+      ungroup() %>%
+      filter(!!rlang::sym(var_display_names[1]) %in% c(rate_element)) %>%
+      select(!!!syms(group_vars), value)
   }else if(summary_type == "percent"){
     percentages <- percentages %>%
-    select(!!!syms(var_display_names), value = freq) %>%
-    group_by(across(all_of(group_vars))) %>%
-    mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
-    mutate(value = round(value * 100, 1)) %>%
-    ungroup()
+      select(!!!syms(var_display_names), value = freq) %>%
+      group_by(across(all_of(group_vars))) %>%
+      mutate(value = value / value[.data[[var_display_names[1]]] == var_totals[1]]) %>%
+      mutate(value = round(value * 100, 1)) %>%
+      ungroup()
   }else if(summary_type == "numFreq"){
     percentages <- percentages %>%
-    select(!!!syms(var_display_names), value = !!numericVar) %>%
-    group_by(across(all_of(group_vars))) %>%
-    mutate(value = round(value, 0)) %>%
-    ungroup()
+      select(!!!syms(var_display_names), value = !!numericVar) %>%
+      group_by(across(all_of(group_vars))) %>%
+      mutate(value = round(value, 0)) %>%
+      ungroup()
   }else if(summary_type == "numSum"){
     percentages <- percentages %>%
-    select(!!!syms(var_display_names), value = !!numericVar) %>%
-    group_by(across(all_of(var_display_names))) %>%
-    summarize(value = sum(value)) %>%
-    mutate(value = round(value, 0)) %>%
-    ungroup()
+      select(!!!syms(var_display_names), value = !!numericVar) %>%
+      group_by(across(all_of(var_display_names))) %>%
+      summarize(value = sum(value)) %>%
+      mutate(value = round(value, 0)) %>%
+      ungroup()
   }else{
     percentages <- percentages %>%
-    select(!!!syms(var_display_names), value = freq) %>%
-    mutate(value = round(value, 0)) %>%
-    ungroup()
+      select(!!!syms(var_display_names), value = freq) %>%
+      mutate(value = round(value, 0)) %>%
+      ungroup()
   }
 
-  #### Remove cells that are based on too small values
-  prob_dummy <- makeProblem(data_selected, dimList = hier_list, numVarInd = numericVar)
+  # Suppress too small values
+  if(suppress){
+    #### Remove cells that are based on too small values
+    prob_dummy <- makeProblem(data_selected, dimList = hier_list,
+                              numVarInd = numericVar)
 
-  prob_dummy <- primarySuppression(prob_dummy, type = "freq", maxN = min_cells)
+    prob_dummy <- primarySuppression(prob_dummy, type = "freq", maxN = min_cells)
 
-  percentages_dummy <- sdcProb2df(prob, addNumVars  = ifelse(is.null(numericVar), FALSE, TRUE))
+    percentages_dummy <- sdcProb2df(prob,
+                                    addNumVars  = ifelse(is.null(numericVar), FALSE, TRUE))
 
-  for (i in 1:length(var_names)) {
-    var_name <- var_names[i]
-    var_display_name <- var_display_names[i]
-    label_var <- paste0(var_name, "_o")
+    for (i in 1:length(var_names)) {
+      var_name <- var_names[i]
+      var_display_name <- var_display_names[i]
+      label_var <- paste0(var_name, "_o")
+      percentages_dummy <- percentages_dummy %>%
+        mutate(!!var_display_name := factor(as.numeric(.data[[var_name]]),
+                                            labels = unique(.data[[label_var]])))
+    }
+
     percentages_dummy <- percentages_dummy %>%
-    mutate(!!var_display_name := factor(as.numeric(.data[[var_name]]), labels = unique(.data[[label_var]])))
-  }
+      filter(sdcStatus  == "s") %>%
+      select(!!!syms(var_display_names), n = freq)
 
-  percentages_dummy <- percentages_dummy %>%
-  filter(sdcStatus  == "s") %>%
-  select(!!!syms(var_display_names), n = freq)
+    var_final <- var_names
+    var_display_names_final <- var_display_names
 
-  var_final <- var_names
-  var_display_names_final <- var_display_names
+    if(summary_type == "single_rate"){
+      var_final <- var_final[-1]
+      var_display_names_final <- var_display_names_final[-1]
 
-  if(summary_type == "single_rate"){
-    var_final <- var_final[-1]
-    var_display_names_final <- var_display_names_final[-1]
+      percentages_dummy <- percentages_dummy |>
+        filter(!!rlang::sym(var_display_names[1]) %in% c(rate_element)) %>%
+        select(!!!syms(group_vars), n)
+      percentages <- percentages %>% left_join(percentages_dummy,  by = group_vars) %>%
+        mutate(value = ifelse(is.na(n), NA, value)) %>%
+        select(-n)
 
-    percentages_dummy <- percentages_dummy |>
-      filter(!!rlang::sym(var_display_names[1]) %in% c(rate_element)) %>%
-      select(!!!syms(group_vars), n)
-    percentages <- percentages %>% left_join(percentages_dummy,  by = group_vars) %>%
-      mutate(value = ifelse(is.na(n), NA, value)) %>%
-      select(-n)
-
-  }else{
-    percentages <- percentages %>% left_join(percentages_dummy,  by = var_display_names) %>%
-    mutate(value = ifelse(is.na(n), NA, value)) %>%
-    select(-n)
+    }else{
+      percentages <- percentages %>% left_join(percentages_dummy,  by = var_display_names) %>%
+        mutate(value = ifelse(is.na(n), NA, value)) %>%
+        select(-n)
+    }
   }
 
   # Correct order of columns for the table
   percentages <- percentages |>
-    select(rev(colnames(percentages)[1:(ncol(colnames)-1)]), colnames(percentages)[ncol(percentages)])
+    select(rev(colnames(percentages)[1:(ncol(percentages)-1)]),
+           colnames(percentages)[ncol(percentages)])
 
   return(percentages)
 }
