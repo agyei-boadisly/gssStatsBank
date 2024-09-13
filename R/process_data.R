@@ -1,32 +1,29 @@
 
 #' Process Data into Format Needed for PX File
 #'
-#' @param data an object (dataframe)
-#' @param var_names disaggregation variables
-#' @param var_totals character for totals in all disaggregates.
-#' @param var_display_names variable names to replace the disaggregation variables.
-#' @param weight_var weight variable (must be numeric).
-#' @param save_location the directory to save the returned output.
-#' @param min_cells minimum frequency for suppression (default is 5)
-#' @param summary_type type of summary to make. Only accepts:
+#' @param data A dataframe with no missing values
+#' @param var_names Disaggregation variables.
+#' @param var_totals Dimension totals. This is the root for each dimension hierarchie.
+#' @param var_display_names Specify new variable names to replace the disaggregation variables.
+#' @param weight_var Weight variable (must be numeric).
+#' @param min_cells Minimum frequency for suppression (default is 5)
+#' @param summary_type Type of summary to make. Only accepts:
 #' \itemize{
-#'   \item **freq:** frequencies or counts
+#'   \item  \textbf{freq:} frequencies or counts
 #'   \item **percent:** computes percentages for dimensions.
 #'   \item **numFreq:** computes frequency of numeric variable by dimensions. Eg. Number of livestock raised by households/individuals.
 #'   \item **numSum:** computes sum of numeric variable by dimensions.
 #'   \item **single_rate:** computes rates for dimensions. eg. unemployment rate without the inverse (employment).
 #' }
-#' @param rate_element focus element to retain under single_rate summary_type
+#' @param rate_element Focus element to retain under single_rate summary_type
 #' @param numericVar a numeric or character vector defining the column indices or variable names of additional numeric variables with respect to data.
-#' @param add_hier update the list of hierarchie created by this function with a list of different hierarchies
-#' @param ... additional variables for as.px.data.frame
+#' @param add_hier Adds list of hierarchie
 #'
 #' @return data
 #' @export
-process_data <- function(data, var_names, var_totals,var_display_names, weight_var,
-                         save_location, min_cells = 5, rate_element = NULL, numericVar = NULL,
-                         add_hier = NULL, summary_type = "freq", # freq, numSum, percent, single_rate
-  ...
+process_data <- function(data, var_names, var_totals, var_display_names, weight_var,
+                         add_hier = NULL, summary_type = "freq", rate_element = NULL,
+                         numericVar = NULL, min_cells = 5
 ) {
 
 

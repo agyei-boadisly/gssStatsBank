@@ -1,6 +1,6 @@
-#' Create Sub-Hierarchy
+#' Create Sub-Hierarchies
 #'
-#' This function creates a hierarchical structure using the `sdcHierarchies` package. It dynamically adds child nodes for specified parent nodes based on the provided data.
+#' This function creates a hierarchical structure using the `sdcHierarchies` package. It dynamically adds child nodes for specified parent nodes based on some specified variables and object.
 #'
 #' @param data A data frame containing the data to be used for creating the hierarchy.
 #' @param var_total A string specifying the root node for the hierarchy.
@@ -12,19 +12,22 @@
 #' @export
 
 # Function to create sub-hierarchy
-make_sub_hier <- function(data, 
+make_sub_hier <- function(data,
                           var_total,  # String for root hier_create
-                          var_main,   # Colname containing the roots 
+                          var_main,   # Colname containing the roots
                           sub_var,    # Colname containing the child
-                          main_groups # Specify the categories under var_main to create child levels for 
+                          main_groups # Specify the categories under var_main to create child levels for
                           ) {
   # Ensure column names are provided as strings
   var_main <- sym(var_main)
   sub_var <- sym(sub_var)
-  
+
+  #select variables
+  data <- data %>% select(!!var_main)
+
   # Create Root Hierarchy
   make_hier <- hier_create(root = var_total, nodes = unique(data %>% pull(!!var_main)))
-  
+
   # Function to add child levels dynamically
   add_children <- function(parent_node) {
     child_nodes <- data %>%
@@ -32,14 +35,14 @@ make_sub_hier <- function(data,
       pull(!!sub_var) %>%
       unique() %>%
       as.character()
-    
+
     if (length(child_nodes) > 0) {
       make_hier <<- hier_add(make_hier, root = parent_node, nodes = child_nodes)
     }
   }
-  
+
   # Dynamically adding child levels based on specified main_groups
   walk(main_groups, add_children)
-  
+
   return(make_hier)
 }
