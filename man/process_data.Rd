@@ -10,49 +10,40 @@ process_data(
   var_totals,
   var_display_names,
   weight_var,
-  save_location,
-  min_cells = 5,
-  suppress = FALSE,
-  rate_element = NULL,
-  numericVar = NULL,
   add_hier = NULL,
   summary_type = "freq",
-  ...
+  rate_element = NULL,
+  numericVar = NULL,
+  min_cells = 5
 )
 }
 \arguments{
-\item{data}{an object (dataframe)}
+\item{data}{A dataframe with no missing values}
 
-\item{var_names}{disaggregation variables}
+\item{var_names}{Disaggregation variables.}
 
-\item{var_totals}{character for totals in all disaggregates.}
+\item{var_totals}{Dimension totals. This is the root for each dimension hierarchie.}
 
-\item{var_display_names}{variable names to replace the disaggregation variables.}
+\item{var_display_names}{Specify new variable names to replace the disaggregation variables.}
 
-\item{weight_var}{weight variable (must be numeric).}
+\item{weight_var}{Weight variable (must be numeric).}
 
-\item{save_location}{the directory to save the returned output.}
+\item{add_hier}{Adds list of hierarchie}
 
-\item{min_cells}{minimum frequency for suppression (default is 5)}
-
-\item{suppress}{TRUE / FALSE whether to suppress small numbers (temporary fix)}
-
-\item{rate_element}{focus element to retain under single_rate summary_type}
-
-\item{numericVar}{a numeric or character vector defining the column indices or variable names of additional numeric variables with respect to data.}
-
-\item{add_hier}{update the list of hierarchie created by this function with a list of different hierarchies}
-
-\item{summary_type}{type of summary to make. Only accepts:
+\item{summary_type}{Type of summary to make. Only accepts:
 \itemize{
-  \item **freq:** frequencies or counts
+  \item  \textbf{freq:} frequencies or counts
   \item **percent:** computes percentages for dimensions.
   \item **numFreq:** computes frequency of numeric variable by dimensions. Eg. Number of livestock raised by households/individuals.
   \item **numSum:** computes sum of numeric variable by dimensions.
   \item **single_rate:** computes rates for dimensions. eg. unemployment rate without the inverse (employment).
 }}
 
-\item{...}{additional variables for as.px.data.frame}
+\item{rate_element}{Focus element to retain under single_rate summary_type}
+
+\item{numericVar}{a numeric or character vector defining the column indices or variable names of additional numeric variables with respect to data.}
+
+\item{min_cells}{Minimum frequency for suppression (default is 5)}
 }
 \value{
 data

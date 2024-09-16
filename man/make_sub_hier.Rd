@@ -2,7 +2,7 @@
 % Please edit documentation in R/sub_hierarchie.R
 \name{make_sub_hier}
 \alias{make_sub_hier}
-\title{Create Sub-Hierarchy}
+\title{Create Sub-Hierarchies}
 \usage{
 make_sub_hier(data, var_total, var_main, sub_var, main_groups)
 }
@@ -21,5 +21,5 @@ make_sub_hier(data, var_total, var_main, sub_var, main_groups)
 A hierarchical structure with the specified root and child nodes.
 }
 \description{
-This function creates a hierarchical structure using the `sdcHierarchies` package. It dynamically adds child nodes for specified parent nodes based on the provided data.
+This function creates a hierarchical structure using the `sdcHierarchies` package. It dynamically adds child nodes for specified parent nodes based on some specified variables and object.
 }

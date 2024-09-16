@@ -27,6 +27,11 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
     if(max_age < min_age){
       stop("Error: Max age cannot be lower than min age, change the values.")
     }
+
+    # Do not allow max age to be above 100
+    if(max_age > 100){
+      stop("Error: Max age cannot beabove 100, change the value.")
+    }
   }
 
   ### PART 1: Data cleaning and mutating
@@ -171,19 +176,41 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
                                                nodes = c("0-14 years",
                                                          "15-64 years",
                                                          "65 years and older"))
+
+          # Set min ages of all groups
+          lowages <- as.numeric(gsub("\\+" , "", gsub("-.*", "", substr(age_labels_final, 1, 3))))
+
+          # Add sub-groups
+          hier_age <- sdcHierarchies::hier_add(hier_age,
+                                               root = "0-14 years",
+                                               nodes = age_labels_final[lowages < 15])
+          hier_age <- sdcHierarchies::hier_add(hier_age,
+                                               root = "15-64 years",
+                                               nodes = age_labels_final[lowages >= 15 &
+                                                                          lowages < 65])
+          hier_age <- sdcHierarchies::hier_add(hier_age,
+                                               root = "65 years and older",
+                                               nodes = age_labels_final[lowages >= 65])
         } else if (min_age != 0 & max_age_type == "cutoff") {
           if (min_age <= 14) {
+            # Set node 1 value based on the value
+            node1 <- ifelse(min_age == 14,
+                            paste0("14 years"),
+                            paste0(min_age, "-14 years"))
+
+            # Add nodes to hierarchy
             hier_age <- sdcHierarchies::hier_add(hier_age,
                                                  root = paste0("All ages (", min_age, " years and older)"),
-                                                 nodes = c(paste0(min_age, "-14 years"),
+                                                 nodes = c(node1,
                                                            "15-64 years",
                                                            "65 years and older"))
 
             # Set min ages of all groups
-            lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
+            lowages <- as.numeric(gsub("\\+" , "", gsub("-.*", "", substr(age_labels_final, 1, 3))))
+
             # Add sub-groups
             hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                 root = c(paste0(min_age, "-14 years")),
+                                                 root = node1,
                                                  nodes = age_labels_final[lowages < 15])
             hier_age <- sdcHierarchies::hier_add(hier_age,
                                                  root = "15-64 years",
@@ -193,15 +220,22 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
                                                  root = "65 years and older",
                                                  nodes = age_labels_final[lowages >= 65])
           } else if (min_age > 14 & min_age <= 64) {
+            # Set node 1 value based on the value
+            node1 <- ifelse(min_age == 64,
+                            paste0("64 years"),
+                            paste0(min_age, "-64 years"))
+
+            # Add nodes to hierarchy
             hier_age <- sdcHierarchies::hier_add(hier_age,
                                                  root = paste0("All ages (", min_age, " years and older)"),
-                                                 nodes = c(paste0(min_age, "-64 years"),
+                                                 nodes = c(node1,
                                                            "65 years and older"))
             # Set min ages of all groups
-            lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
+            lowages <-  as.numeric(gsub("\\+" , "", gsub("-.*", "", substr(age_labels_final, 1, 3))))
+
             # Add sub-groups
             hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                 root = paste0(min_age, "-64 years"),
+                                                 root = node1,
                                                  nodes = age_labels_final[lowages >= min_age &
                                                                             lowages < 65])
             hier_age <- sdcHierarchies::hier_add(hier_age,
@@ -221,17 +255,19 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
           if (max_age <= 14) {
             hier_age <- sdcHierarchies::hier_add(hier_age,
                                                  root = paste0("All ages (", max_age, " years and younger)"),
-                                                 nodes = c(paste0("0-", max_age, " years")))
-
-            # Add sub-groups
-            hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                 root = c(paste0("0-", max_age, " years")),
                                                  nodes = age_labels_final)
+
           } else if (max_age > 14 & max_age <= 64) {
+            # Set node 1 value based on the value
+            node1 <- ifelse(max_age == 15,
+                            paste0("15 years"),
+                            paste0("15-", max_age, " years"))
+
+            # Add nodes to hierarchy
             hier_age <- sdcHierarchies::hier_add(hier_age,
                                                  root = paste0("All ages (", max_age, " years and younger)"),
                                                  nodes = c("0-14 years",
-                                                           paste0("15-", max_age, " years")))
+                                                           node1))
 
             # Set min ages of all groups
             lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
@@ -240,14 +276,20 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
                                                  root = "0-14 years",
                                                  nodes = age_labels_final[lowages < 15])
             hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                 root = paste0("15-", max_age, " years"),
+                                                 root = node1,
                                                  nodes = age_labels_final[lowages >= 15])
           } else {
+            # Set node 1 value based on the value
+            node1 <- ifelse(max_age == 65,
+                            paste0("65 years"),
+                            paste0("65-", max_age, " years"))
+
+            # Add nodes to hierarchy
             hier_age <- sdcHierarchies::hier_add(hier_age,
                                                  root = paste0("All ages (", max_age, " years and younger)"),
                                                  nodes = c("0-14 years",
                                                            "15-64 years",
-                                                           paste0("65-", max_age, " years")))
+                                                           node1))
 
             # Set min ages of all groups
             lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
@@ -260,82 +302,102 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
                                                  nodes = age_labels_final[lowages >= 15 &
                                                                             lowages < 65])
             hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                 root = paste0("65-", max_age, " years"),
+                                                 root = node1,
                                                  nodes = age_labels_final[lowages >= 65])
           }
         } else if (min_age != 0 & max_age_type == "max") {
           if (min_age <= 14) {
             if (max_age <= 14) {
+              # Add nodes to hierarchy
+              # Directly add the subgroups and not the main group
               hier_age <- sdcHierarchies::hier_add(hier_age,
                                                    root = paste0("All ages (", min_age, "-", max_age, " years old)"),
-                                                   nodes = c(paste0(min_age, "-14 years")))
-
-              # Set min ages of all groups
-              lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
-              # Add sub-groups
-              hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                   root = paste0(min_age, "-14 years"),
                                                    nodes = age_labels_final)
+
             }else if (max_age > 14 & max_age <= 64) {
+              # Set node value based on the value
+              node1 <- ifelse(min_age == 14,
+                              paste0("14 years"),
+                              paste0(min_age, "-14 years"))
+              node2 <- ifelse(max_age == 15,
+                              paste0("15 years"),
+                              paste0("15-", max_age, " years"))
+
+              # Add nodes to hierarchy
               hier_age <- sdcHierarchies::hier_add(hier_age,
                                                    root = paste0("All ages (", min_age, "-", max_age, " years old)"),
-                                                   nodes = c(paste0(min_age, "-14 years"),
-                                                             paste0("15-", max_age, " years")))
+                                                   nodes = c(node1,
+                                                             node2))
 
               # Set min ages of all groups
               lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
               # Add sub-groups
               hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                   root = paste0(min_age, "-14 years"),
+                                                   root = node1,
                                                    nodes = age_labels_final[lowages < 15])
               hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                   root = paste0("15-", max_age, " years"),
+                                                   root = node2,
                                                    nodes = age_labels_final[lowages >= 15 &
                                                                               lowages < 65])
             } else {
+              # Set node value based on the value
+              node1 <- ifelse(min_age == 14,
+                              paste0("14 years"),
+                              paste0(min_age, "-14 years"))
+              node2 <- ifelse(max_age == 65,
+                              paste0("65 years"),
+                              paste0("65-", max_age, " years"))
+
+              # Add nodes to hierarchy
               hier_age <- sdcHierarchies::hier_add(hier_age,
                                                    root = paste0("All ages (", min_age, "-", max_age, " years old)"),
-                                                   nodes = c(paste0(min_age, "-14 years"),
+                                                   nodes = c(node1,
                                                              "15-64 years",
-                                                             paste0("65-", max_age, " years")))
+                                                             node2))
 
               # Set min ages of all groups
               lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
               # Add sub-groups
               hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                   root = paste0(min_age, "-14 years"),
+                                                   root = node1,
                                                    nodes = age_labels_final[lowages < 15])
               hier_age <- sdcHierarchies::hier_add(hier_age,
                                                    root = "15-64 years",
                                                    nodes = age_labels_final[lowages >= 15 &
                                                                               lowages < 65])
               hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                   root = paste0("65-", max_age, " years"),
+                                                   root = node2,
                                                    nodes = age_labels_final[lowages >= 65])
             }
           } else if (min_age > 14 & min_age <= 64) {
             if (max_age <= 64) {
               hier_age <- sdcHierarchies::hier_add(hier_age,
                                                    root = paste0("All ages (", min_age, "-", max_age, " years old)"),
-                                                   nodes = c(paste0(min_age, "-", max_age, " years")))
-
-              # Set min ages of all groups
-              lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
-              # Add sub-groups
-              hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                   root = "15-64 years",
                                                    nodes = age_labels_final)
+
+              # # Set min ages of all groups
+              # lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
+              # # Add sub-groups
+              # hier_age <- sdcHierarchies::hier_add(hier_age,
+              #                                      root = paste0(min_age, "-", max_age, " years"),
+              #                                      nodes = age_labels_final)
             } else {
+              # Set node 1 value based on the value
+              node1 <- ifelse(min_age == 64,
+                              paste0("64 years"),
+                              paste0(min_age, "-64 years"))
+
+              # Add nodes to hierarchy
               hier_age <- sdcHierarchies::hier_add(hier_age,
                                                    root = paste0("All ages (", min_age, "-", max_age, " years old)"),
-                                                   nodes = c(paste0(min_age, "-", max_age, " years"),
+                                                   nodes = c(node1,
                                                              "65 years and older"))
 
               # Set min ages of all groups
               lowages <- as.numeric(gsub("-.*", "", substr(age_labels_final, 1, 3)))
               # Add sub-groups
               hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                   root = paste0(min_age, "-", max_age, " years"),
+                                                   root = node1,
                                                    nodes = age_labels_final[lowages >= 15 &
                                                                               lowages < 65])
               hier_age <- sdcHierarchies::hier_add(hier_age,
@@ -345,20 +407,25 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
           } else {
             hier_age <- sdcHierarchies::hier_add(hier_age,
                                                  root = paste0("All ages (", min_age, "-", max_age, " years old)"),
-                                                 nodes = c(paste0(min_age, " years and older")))
+                                                 nodes =age_labels_final)
 
-            # Add sub-groups
-            hier_age <- sdcHierarchies::hier_add(hier_age,
-                                                 root = paste0(min_age, " years and older"),
-                                                 nodes = age_labels_final)
+            # # Add sub-groups
+            # hier_age <- sdcHierarchies::hier_add(hier_age,
+            #                                      root = paste0(min_age, " years and older"),
+            #                                      nodes = age_labels_final)
           }
         }
 
         return(hier_age)
       }
 
-      # Add age groups based on conditions
-      hier_age <- add_age_groups(hier_age, min_age, max_age, max_age_type)
+      # If more than one sub-group, add them
+      if(length(age_labels_final) != 1){
+        # Add age groups based on conditions
+        hier_age <- add_age_groups(hier_age, min_age, max_age, max_age_type)
+      }
+
+      return(hier_age)
     }
 
     # Add age groups based on conditions
@@ -376,24 +443,34 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
         filter(level == max_level) |>
         pull(leaf)
 
-      for(g in groups){
-        # Select single ages in the group
-        # If it is the + group, don't add anything, but it needs to have -
-        #     otherwise add all values in group
-        if(!grepl("\\+", g) & grepl("\\-", g)){
+      # If we have more age groups we have level 1 = root, then 2 = general group
+      # 3 = subgroups, then we add the single ages below
+      if(max_level == 3 |max_level == 2){
+        for(g in groups){
+          # Select single ages in the group
+          # If it is the + group, don't add anything, but it needs to have -
+          #     otherwise add all values in group
+          if(!grepl("\\+", g) & grepl("\\-", g)){
 
-          # Split the values by the hyphen
-          split_values <- strsplit(g, "-")
+            # Split the values by the hyphen
+            split_values <- strsplit(g, "-")
 
-          # Extract the minimum and maximum
-          min_values <- sapply(split_values, function(x) as.numeric(x[1]))
-          max_values <- sapply(split_values, function(x) as.numeric(x[2]))
+            # Extract the minimum and maximum
+            min_values <- sapply(split_values, function(x) as.numeric(x[1]))
+            max_values <- sapply(split_values, function(x) as.numeric(x[2]))
 
-          # add single ages
-          clean_age_hier <- sdcHierarchies::hier_add(clean_age_hier,
-                                                     root = g,
-                                                     nodes = as.character(min_values:max_values))
+            # add single ages
+            clean_age_hier <- sdcHierarchies::hier_add(clean_age_hier,
+                                                       root = g,
+                                                       nodes = as.character(min_values:max_values))
+          }
         }
+      }else { # If max level = 1 then we have no subgroups so we add all ages directly
+        # add single ages
+        clean_age_hier <- sdcHierarchies::hier_add(clean_age_hier,
+                                                   root = groups,
+                                                   nodes = as.character(min_age:max_age))
+
       }
     }
 
@@ -401,8 +478,6 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
     if(print_hier){
       hier_display(clean_age_hier)
     }
-
-
   }
 
   ### Create list to return
@@ -410,3 +485,4 @@ clean_age_data <- function(data, age_var = "age", min_age = 0, max_age = 100,
                       "hier" = clean_age_hier)
   return(return_list)
 }
+
