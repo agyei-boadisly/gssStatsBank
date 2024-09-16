@@ -14,7 +14,8 @@ process_data(
   summary_type = "freq",
   rate_element = NULL,
   numericVar = NULL,
-  min_cells = 5
+  min_cells = 5,
+  suppress = FALSE
 )
 }
 \arguments{
