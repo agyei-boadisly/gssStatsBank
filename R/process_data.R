@@ -21,10 +21,9 @@
 #'
 #' @return data
 #' @export
-<<<<<<< Updated upstream
 process_data <- function(data, var_names, var_totals, var_display_names, weight_var,
                          add_hier = NULL, summary_type = "freq", rate_element = NULL,
-                         numericVar = NULL, min_cells = 5
+                         numericVar = NULL, min_cells = 5, suppress = FALSE
 ) {
 
 
