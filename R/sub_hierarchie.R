@@ -23,7 +23,7 @@ make_sub_hier <- function(data,
   sub_var <- sym(sub_var)
 
   #select variables
-  data <- data %>% select(!!var_main)
+  data <- data %>% select({{var_main}}, {{sub_var}})
 
   # Create Root Hierarchy
   make_hier <- hier_create(root = var_total, nodes = unique(data %>% pull(!!var_main)))
